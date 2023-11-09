@@ -10,7 +10,11 @@ from modules import youtube_search, search_list
 DB_NAME = 'app.db'
 token = 'TELEGRAM_BOT_API'
 bot = telebot.TeleBot(token)
-logging.basicConfig(filename='bot.log', level=logging.DEBUG)
+logging.basicConfig(
+    filename='bot.log',
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
 # Функция для установления соединения с базой данных
 def connect_to_db():
@@ -23,8 +27,12 @@ def add_user(chat_id):
         cursor = connection.cursor()
         cursor.execute('INSERT OR IGNORE INTO Users (Id, Counter) VALUES (?, ?)', (chat_id, 1))
         connection.commit()
+
+        logging.info(f'User with chat ID {chat_id} has been added to the database')
     except sqlite3.Error as e:
+        logging.error(f'An error occurred while adding user with chat ID {chat_id}: {e}')
         print(f"An error occurred: {e}")
+        
     finally:
         if connection:
             connection.close()
@@ -38,11 +46,9 @@ def handle_start_help(message):
     first_name = message.chat.first_name
     last_name = message.chat.last_name
     
-    # Вывод информации для лога
-    print(chat_id)
-    print(username)
-    print(first_name)
-    print(last_name)
+
+    logging.info(f'New message received from chat ID: {chat_id}')
+    logging.debug(f'Username: {username}, First Name: {first_name}, Last Name: {last_name}')
 
     # Отправка приветственного сообщения
     bot.send_message(chat_id, text='Hello! With this bot you can quickly search for videos on YouTube video sharing. \
@@ -61,10 +67,10 @@ def send_next_video(chat_id, counter):
 
         cursor.execute('SELECT * FROM SearchResult WHERE UserId=:Id', {'Id': chat_id})
         results = cursor.fetchall()
-        print(results)
+
         if results:
             video_sender = results[counter][1]
-            print(video_sender)
+            logging.info(f'Sending video to chat ID {chat_id}: {video_sender}')
             bot.send_message(chat_id, text=video_sender)
 
             # Обновляем счетчик для пользователя
@@ -81,6 +87,7 @@ def send_next_video(chat_id, counter):
             bot.send_message(chat_id, 'No more videos available.')
 
     except sqlite3.Error as e:
+        logging.error(f'An error occurred while sending the next video to chat ID {chat_id}: {e}')
         print(f"An error occurred: {e}")
     finally:
         if connection:
