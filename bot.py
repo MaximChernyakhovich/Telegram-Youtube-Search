@@ -111,6 +111,9 @@ def perform_youtube_search(chat_id, text):
 
         # Отправляем первый результат пользователю
         send_next_video(chat_id, 0)
+
+        logging.info(f"YouTube search performed successfully for chat_id: {chat_id}")
+
     except sqlite3.Error as e:
         print(f"An error occurred: {e}")
     finally:
@@ -145,7 +148,7 @@ def next_video(message):
             
 
     except sqlite3.Error as e:
-        print(f"An error occurred: {e}")
+        logging.error(f"An error occurred: {e}")
     finally:
         if connection:
             connection.close()
@@ -159,20 +162,28 @@ def handle_text(message):
     first_name = message.chat.first_name
     last_name = message.chat.last_name
 
+    logging.info(f"Received text message from chat_id: {chat_id}")
+    logging.debug(f"User info - username: {user_name}, first name: {first_name}, last name: {last_name}")
+
     # Обработка текстовых сообщений
     # Сообщения с точкой в начале сообщения возвращают список ссылок
 
-    if '.' in message.text:
-        request = text.split(".")[1]
-        bot.send_message(message.chat.id, search_list(request)[:4096])
+    try:
+        if '.' in message.text:
+            request = text.split(".")[1]
+            bot.send_message(message.chat.id, search_list(request)[:4096])
 
-    else:
-        perform_youtube_search(chat_id, text)
+            logging.info(f"Sent search results to chat_id: {chat_id}")
+
+        else:
+            perform_youtube_search(chat_id, text)
+
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
 
 while True:
     try:
         bot.polling(none_stop=True, interval=1)
     except:
-        print('bolt')
         logging.error('error: {}'.format(sys.exc_info()[0]))
         time.sleep(5)
